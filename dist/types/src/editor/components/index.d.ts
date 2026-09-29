@@ -1,0 +1,26 @@
+/**
+ * `open-lyric` component layer — the framework-free, embeddable API described
+ * in `research/editor-structure-implemented.md`.
+ *
+ * All four components are exported: the two standalone previews, the
+ * standalone editor, and the dashboard shell (wrap phase — it drives the
+ * existing application through the component contract; the page entries
+ * `editor/main-open-lyric.ts` and `editor/main-editor.ts` are its canonical
+ * consumers, so the live app is the integration example).
+ */
+export { OpenLyric } from './OpenLyric.js';
+export type { OpenLyricAttachment, OpenLyricAttachmentType, OpenLyricContentType, OpenLyricElementMapOptions, OpenLyricImageOptions, OpenLyricInfo, OpenLyricOptions, OpenLyricSectionInfo, OpenLyricValueOptions, } from './OpenLyric.js';
+export { OpenLyricMarkdownManager } from './OpenLyricMarkdownManager.js';
+export type { OpenLyricMarkdownInfo, OpenLyricMarkdownOptions, } from './OpenLyricMarkdownManager.js';
+export { Editor } from './Editor.js';
+export type { EditorFenceFocusOptions, EditorFenceFocusTarget, EditorOptions, EditorSharedSurfaceBridge, EditorVerticalLine, ResolvedEditorVerticalLine, } from './Editor.js';
+export { listOpenLyricFences } from '../../plugins/OpenLyric/domain/fence-locations.js';
+export type { OpenLyricFenceLocation } from '../../plugins/OpenLyric/domain/fence-locations.js';
+export { getActiveOpenLyricDashboard, OpenLyricDashboard, } from './OpenLyricDashboard.js';
+export type { OpenLyricDashboardDraft, OpenLyricDashboardDraftContext, OpenLyricDashboardLoadValue, OpenLyricDashboardOnValueChange, OpenLyricDashboardOptions, OpenLyricDashboardResetOptions, OpenLyricDashboardSaveValue, } from './OpenLyricDashboard.js';
+export { OpenLyricComponent } from './internal/OpenLyricComponent.js';
+export { OpenLyricPreviewComponent } from './internal/OpenLyricPreviewComponent.js';
+export { OPEN_LYRIC_CHORD_POPUP_EVENT, OPEN_LYRIC_PLUGIN_API_VERSION, } from './internal/types.js';
+export type { OpenLyricChangeListener, OpenLyricChangePayload, OpenLyricChordPopupEventDetail, OpenLyricComponentHost, OpenLyricDisplayChangePayload, OpenLyricComponentOptions, OpenLyricContributions, OpenLyricEditorLike, OpenLyricEventHandler, OpenLyricEventMap, OpenLyricEventName, OpenLyricFontFaceList, OpenLyricFontFaceSection, OpenLyricKeyboardContributionSpec, OpenLyricLanguageContribution, OpenLyricLifecycleState, OpenLyricPartDblclickPayload, OpenLyricPlugin, OpenLyricPluginChangePayload, OpenLyricPreviewOptions, OpenLyricPreviewSetting, OpenLyricRenderContext, OpenLyricRenderHook, OpenLyricRendererContribution, OpenLyricRendererTargetSpec, OpenLyricSavePayload, OpenLyricSettingsContribution, OpenLyricSpellcheckContributionSpec, OpenLyricStyleContribution, OpenLyricSurface, OpenLyricTheme, OpenLyricThemeBase, OpenLyricThemeChangePayload, OpenLyricTypographyChangePayload, Unsubscribe, } from './internal/types.js';
+export { OPEN_LYRIC_THEME_LABELS, OPEN_LYRIC_THEME_PRESETS, OPEN_LYRIC_THEMES, getOpenLyricThemeBase, isBootstrapTheme, isOpenLyricTheme, } from './internal/theme.js';
+export type { OpenLyricThemePreset } from './internal/theme.js';

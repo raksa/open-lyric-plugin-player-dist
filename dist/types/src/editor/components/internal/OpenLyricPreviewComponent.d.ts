@@ -1,0 +1,231 @@
+import { OpenLyricComponent } from './OpenLyricComponent.js';
+import { type OpenLyricEditorLike, type OpenLyricFontFaceList, type OpenLyricFontFaceSection, type OpenLyricPreviewOptions, type OpenLyricRenderHook, type OpenLyricTheme } from './types.js';
+/**
+ * Shared base for the two read-only previews (`OpenLyric`, the lyric preview,
+ * and `OpenLyricMarkdownManager`, the markdown preview).
+ *
+ * Adds to {@link OpenLyricComponent}:
+ * - a `value` setter + render pipeline backed by a subclass `renderMarkup()`
+ * - the editor **bridge** (`editor` / `isWeakRef`): one-way value+theme mirror,
+ *   double-click → `focusRange`, and destroy-driven ref cleanup
+ * - settable typography exposed as `--ol-*` custom properties
+ *
+ * Both previews are Monaco-free and fully standalone; attaching an editor is
+ * optional and never required to render.
+ */
+export declare abstract class OpenLyricPreviewComponent extends OpenLyricComponent {
+    /**
+     * Host-supplied options merged over this component's own render options on
+     * every render (host keys win). Lets an embedding shell thread renderer
+     * context (e.g. pattern-preview targets, per-structure keys) through the
+     * component without subclassing.
+     */
+    extraRenderOptions: Record<string, unknown> | null;
+    /**
+     * Called immediately BEFORE every full re-render of the mounted preview, with
+     * `{ value, root }` — the value about to be rendered, and the render root
+     * still holding the PREVIOUS render's markup (the last chance to read it:
+     * measure a scroll position, remember which section was in view, tear down
+     * anything the host hung off the old nodes, which a render replaces
+     * wholesale).
+     *
+     * Assigned, not subscribed — one hook per component, `null` to clear:
+     *
+     * ```ts
+     * preview.onWillRender = ({ value }) => console.log('rendering', value.length);
+     * ```
+     *
+     * It is a notification: returning anything (or throwing — a throw is logged
+     * and swallowed) neither cancels nor delays the render.
+     */
+    onWillRender: OpenLyricRenderHook | null;
+    /**
+     * Called after every full re-render of the mounted preview, with
+     * `{ value, root }` — `root.innerHTML` is the fresh markup, decorated and
+     * with the attached plugins' `onAfterRender` + `renderers` contributions
+     * already applied, so a host reads the preview exactly as the reader sees it
+     * (query the new nodes, re-apply its own decorations, measure a height):
+     *
+     * ```ts
+     * preview.onRendered = () => console.log('rendered');
+     * ```
+     *
+     * Fires for every render path — the initial `mount()`, a `value` assignment,
+     * an attached editor's edit, a theme/typography/display change, `reload()`,
+     * and a plugin attach/detach that requests one — so treat it as "the preview
+     * HTML is now current", not as a value-change event (`on('change', …)` is
+     * that). The off-screen renders behind `getValue()`/`getElementMap()` never
+     * fire it: they build their own surface and leave this preview alone.
+     *
+     * The one gap is a host that patches the rendered DOM ITSELF: the app panels'
+     * incremental single-line fast paths write one segment directly and report the
+     * result through {@link syncRenderedValue}, which by design does not
+     * re-render — and so does not fire these hooks.
+     */
+    onRendered: OpenLyricRenderHook | null;
+    private valueText;
+    private renderRoot;
+    private adoptContainerValue;
+    private editorRef;
+    private weakRef;
+    private readonly editorBridgeUnsubscribes;
+    private fontFamilyValue;
+    private fontSizeValue;
+    private fontFacesValue;
+    private readonly boundDoubleClick;
+    constructor(options?: OpenLyricPreviewOptions);
+    /** See {@link OpenLyricPreviewOptions.adoptContainer}. */
+    get adoptContainer(): boolean;
+    set adoptContainer(next: boolean);
+    get value(): string;
+    set value(next: string);
+    /**
+     * Adopt a value the HOST has already rendered itself — no re-render, no
+     * `change` event.
+     *
+     * The app panels keep incremental single-line fast paths that patch one
+     * segment of the adopted DOM directly and never route through
+     * `renderNow()`. Without this the component's view of the document would sit
+     * at whatever the last full render passed it, and everything resolved FROM
+     * the document — today the locale-matched font of
+     * {@link resolvedFontFamily} — would lag a `- Locales:` edit until some
+     * other change forced a full render. Costs a string assignment and one
+     * typography pass.
+     *
+     * With an editor attached the editor is authoritative (`value` reads
+     * through it), so only the typography is refreshed.
+     */
+    syncRenderedValue(next: string): void;
+    get editor(): OpenLyricEditorLike | null;
+    set editor(next: OpenLyricEditorLike | null);
+    get isWeakRef(): boolean;
+    set isWeakRef(next: boolean);
+    /**
+     * The font faces offered for picking. Round-trips whatever shape the host
+     * assigned — a flat list of names, titled sections, or a mix; use
+     * {@link getFontFaceSections} for the normalized sectioned view.
+     */
+    get fontFaces(): OpenLyricFontFaceList;
+    set fontFaces(next: OpenLyricFontFaceList);
+    /**
+     * `fontFaces` normalized into titled sections — what the standalone chrome's
+     * font-family picker lists. Bare names collapse into one untitled section;
+     * blanks, duplicates, and empty sections drop out.
+     *
+     * Attached plugins' `language.fontFaces` are appended after the host's own
+     * list, the preview counterpart of {@link Editor.resolvedFontFamily}: a
+     * language plugin ships its faces that way, so composing it is all an embed
+     * needs for them to appear in the picker — no page has to name a face
+     * itself. A host that sets `fontFaces` still leads the list; assigning it
+     * no longer hides what the plugins contribute.
+     */
+    getFontFaceSections(): OpenLyricFontFaceSection[];
+    get fontFamily(): string;
+    /**
+     * The stack this preview actually renders with (`--ol-font-family`): the
+     * host's `fontFamily` when set, else the font of a composed language plugin
+     * whose locale THIS document declares, else empty — the stylesheet's own.
+     *
+     * The document decides, not the composition: attaching a language plugin no
+     * longer restyles every song on the surface, so a Latin song stays on the
+     * page's font while a `- Locales: km-KH` song renders in the Khmer face,
+     * both through the same attached plugin. Re-resolved on every render, so
+     * typing the `Locales` line switches the font as it is typed.
+     */
+    get resolvedFontFamily(): string;
+    /**
+     * The first attached plugin that claims a locale this document declares and
+     * contributes a font stack for it. A plugin's claimed locales default to its
+     * own id (`km-KH`), so the usual case needs no `locales` list.
+     */
+    private resolvePluginFontFamily;
+    set fontFamily(next: string);
+    get fontSize(): string;
+    set fontSize(next: string);
+    /**
+     * Announce a typography change so host UI (and the standalone chrome's
+     * settings controls) can mirror a programmatic `fontSize`/`fontFamily` set,
+     * the same way `theme-change` lets listeners follow `theme`.
+     */
+    private emitTypographyChange;
+    /** The scoped root class (e.g. `ol-lyric-preview`). */
+    protected abstract rootClassName(): string;
+    /** Render the current value to an HTML string using the subclass backing. */
+    protected abstract renderMarkup(value: string, options: Record<string, unknown>): string;
+    /** Options bag passed to `renderMarkup` (chord/key toggles, etc.). */
+    protected getRenderOptions(): Record<string, unknown>;
+    /** The mounted render root, so concrete getters can query rendered DOM. */
+    protected getRenderRoot(): HTMLElement | null;
+    /**
+     * A **virtual** render root — a detached stand-in carrying everything
+     * `handleMount()` would give the real one (the root classes, the theme
+     * marker and surface styles, the `--ol-*` typography, the injected token and
+     * font-face sheets, and the attached plugins' `style` contributions).
+     *
+     * It exists so the getters that need a laid-out surface — the PNG
+     * rasterizers — can work off a component that was never mounted: a batch
+     * export or a thumbnail job needs a DOM to stage in, not a visible embed.
+     *
+     * The caller owns the handle: stage `root` in the document (rasterization
+     * needs layout), then call `dispose()` to take the plugin styles back out.
+     * `dispose()` only removes what this call installed, so it can never strip a
+     * live embed's styles.
+     *
+     * `width` is explicit because there is no host container to take one from,
+     * and `theme` because an export may be asked for in the OTHER theme than the
+     * one this component is showing — the virtual root is then what carries the
+     * requested theme's tokens, since the live root cannot.
+     */
+    protected createVirtualRenderRoot(width?: number, theme?: OpenLyricTheme): {
+        root: HTMLElement;
+        dispose: () => void;
+    };
+    protected getOwnedRoot(): HTMLElement | null;
+    protected getPluginStyleHost(): HTMLElement | null;
+    /** Render the current value to a detached string (used by getters). */
+    protected renderCurrentHtml(): string;
+    /**
+     * Re-render into the mounted root; safe to call any time. Each pass fires
+     * the host hooks and the plugin render hooks (`onWillRender` /
+     * `onBeforeRender` → render → `onAfterRender` / `onRendered`) and re-applies
+     * `renderers` contributions on the fresh markup.
+     *
+     * The host's {@link onWillRender} runs first — before the typography pass and
+     * the plugins, so it sees the previous render untouched — and its
+     * {@link onRendered} runs last, on markup nothing will change again.
+     */
+    protected renderNow(): void;
+    /**
+     * Run a host render hook. A host's callback is arbitrary page code, so a
+     * throw from it is reported and swallowed the way a plugin hook's is
+     * (`PluginHost.safe`): the render pass — and, on `onWillRender`, the render
+     * that has not happened yet — must not be lost to it.
+     */
+    private notifyRenderHook;
+    /**
+     * Style freshly rendered markup from `--ol-*` variables (theme-aware).
+     *
+     * `theme` is the component's own unless the caller names another — an image
+     * export rendering in the opposite theme decorates its off-screen surface
+     * with THAT theme's preset fallbacks, without touching the live preview.
+     */
+    protected decorateRenderedDom(_root: HTMLElement, _theme?: OpenLyricTheme): void;
+    protected handlePluginRenderRequest(): void;
+    protected resolveRendererTarget(target: string): {
+        selector: string;
+        getText: (element: Element) => string;
+    } | null;
+    protected handleMount(container: HTMLElement): void;
+    protected handleUnmount(): void;
+    private rootClassNames;
+    protected handleReload(): void;
+    protected handleDestroy(): void;
+    private applyValue;
+    private applyTypography;
+    private attachEditorBridge;
+    private detachEditorBridge;
+    protected handleThemeChange(theme: OpenLyricTheme): void;
+    private handleDoubleClick;
+    /** Nearest rendered block carrying a source anchor to the pointer. */
+    private resolveSourceElement;
+}
