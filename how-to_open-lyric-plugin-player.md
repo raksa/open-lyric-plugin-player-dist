@@ -120,7 +120,10 @@ the preview is unchanged: no buttons, no picker, and chords only open their
 popover. `removePlugin('player')` stops its pattern and takes the buttons and
 the picker back off.
 
-**Styling.** The stylesheet ships as its own file. Every rule is scoped under
+**Styling.** The stylesheet travels inside the bundle and is installed as one
+`<style>` — never a `<link>` to an emitted `.css`, which a Vite dev host serves
+as a JavaScript module and the browser then refuses for its MIME type, leaving
+every control it styles unstyled. Every rule is scoped under
 the `data-ol-player` attribute the plugin puts on the preview it decorates, and
 reads the preview's theme variables (`--song-view-chord`, `--preview-ol-chip-bg`,
 …), so it follows the preview's theme. The play button is `.olpp-play`, with
@@ -158,8 +161,8 @@ playground.render();
 | `player`           | The `OpenLyricPlayer` behind the UI.                                                                  |
 | `destroy()`        | Removes the UI and stops its pattern. It destroys a player it made itself. A player you passed in keeps running. |
 
-**Styling.** The stylesheet ships as its own file. On the first `render()` the
-playground adds it to `document.head` as one `<link data-olp-stylesheet>`, and
+**Styling.** The stylesheet travels inside the bundle. On the first `render()` the
+playground adds it to `document.head` as one `<style data-olp-stylesheet>`, and
 removes it when the last playground is destroyed. Every rule sits under
 `.olp-playground`. The colours are CSS custom properties on that root
 (`--accent`, `--surface`, `--text`, …), so a host can override them there. The
@@ -289,11 +292,21 @@ A page loads only the soundfont of the instrument it plays. The room reverb is
 synthesised in code and loads no file.
 
 Each file is byte-for-byte the published file, and each loads through its own
-`<script>` with an SRI hash. The package code refers to them with
-`new URL(…, import.meta.url)`, so a bundler that handles that pattern
-(Vite, webpack 5, Rollup, esbuild) copies them next to the host's bundle. Do
-not let any tool transform or re-encode them. A changed byte fails the SRI
-check, and that sound will not load.
+`<script>`. The package code refers to them with `new URL(…, import.meta.url)`,
+so a bundler that handles that pattern (Vite, webpack 5, Rollup, esbuild)
+copies them next to the host's bundle.
+
+Every file carries a `sha384-` pin, checked **when the package is packed**
+against the asset the build emitted — not at runtime as an `integrity`
+attribute. That is deliberate: these URLs are same-origin and bundler-resolved,
+so SRI guards nothing the host does not already control, and it cannot survive
+the trip. A Vite dev host serves a `.js` under `node_modules` through its
+transform pipeline with an inline sourcemap appended, so the hash never matches
+and the sound simply never plays.
+
+Your host therefore does not have to serve these assets untransformed. Do not
+let a tool transform or re-encode them **in the source or in a `*-dist` repo**,
+though — that is what the pin describes.
 
 The player script is never bundled into this package's MIT code. It is only
 loaded at runtime.

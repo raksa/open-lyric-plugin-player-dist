@@ -1,6 +1,6 @@
 {
   "name": "open-lyric-plugin-player",
-  "version": "0.1.3",
+  "version": "0.1.5",
   "description": "Strum player for Open Lyric — hear a song's strumming patterns and every chord on guitars, keyboards, ukuleles and basses.",
   "license": "MIT",
   "author": "raksa <eng.raksa@gmail.com>",

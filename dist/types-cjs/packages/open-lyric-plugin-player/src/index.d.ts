@@ -11,7 +11,7 @@
  *   instruments, editable pattern cards, and a card for every chord.
  *
  * The WebAudioFont player script (GPL-3.0-or-later) and the four soundfonts
- * ship as separate, unmodified asset files loaded with SRI — never bundled
+ * ship as separate, unmodified asset files, `sha384-`-pinned — never bundled
  * into this package's code.
  */
 export { OpenLyricPlayer } from '../../../src/plugins/OpenLyricPlayer/OpenLyricPlayer.js';

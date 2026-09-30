@@ -14,8 +14,9 @@ import { type ChordCard, type ChordDatabases } from './chord-library.js';
  *   tune within a few cents. The bass is an electric one because the upright
  *   bass's samples sound almost nothing above 150 Hz: on small speakers its
  *   line all but disappears. This app serves copies from
- *   `assets/webaudiofontdata/sound/`, pinned with SRI, so a copy that no
- *   longer matches fails loudly instead of silently sounding different.
+ *   `assets/webaudiofontdata/sound/`, each pinned by `sha384-` hash and
+ *   checked at PACK time against the asset the build emitted, so a copy that
+ *   no longer matches fails the build instead of silently sounding different.
  * - **Voicings.** Every instrument voices the song key's chord itself, in
  *   standard tuning, as its family does (`getVoicingInstrument`): the guitars
  *   as a guitar, the keyboards as a piano, the basses as a bass. A pattern
@@ -29,7 +30,11 @@ export interface StrumSoundfont {
     variable: string;
     /** Where this app serves its copy of the data file. */
     url: string;
-    /** Subresource-integrity hash of the published file, which the copy must match. */
+    /**
+     * `sha384-` hash of the published file, which the copy must match. Checked
+     * at pack time against the emitted asset (`scripts/pack-packages.ts`), never
+     * sent as an `integrity` attribute — see `webaudiofont.ts#loadScriptOnce`.
+     */
     integrity: string;
     /** General MIDI program and sample bank, for display. */
     title: string;
