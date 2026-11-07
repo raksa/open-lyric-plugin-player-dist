@@ -69,3 +69,18 @@ ships as separate, unmodified asset files in `dist/assets/`:
 
 The player script is loaded at runtime by its own `<script>` tag. It is never
 bundled into the MIT code.
+
+
+### Releasing to npm
+
+For maintainers, from a clean `main`:
+
+```bash
+npm test
+npm pack --dry-run                          # check which files go in the package
+npm whoami                                  # run `npm login` if this fails
+npm version patch --tag-version-prefix=""   # or minor / major
+npm publish
+git push origin main --follow-tags
+npm view open-lyric-plugin-player version                   # confirm the new version is live
+```
