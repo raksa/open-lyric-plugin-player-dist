@@ -1,6 +1,6 @@
 # Open Lyric Plugin Player
 
-Hear an [Open Lyric](../open-lyric) song's strumming patterns, and every chord
+Hear an [Open Lyric](https://github.com/raksa/open-lyric-dist#readme) song's strumming patterns, and every chord
 Open Lyric offers, on ten instruments: acoustic, classical and electric
 guitar, piano, electric piano, organ, ukulele, baritone ukulele, bass and
 upright bass.
