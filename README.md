@@ -1,4 +1,4 @@
-# open-lyric-plugin-player
+# Open Lyric Plugin Player
 
 Hear an [Open Lyric](../open-lyric) song's strumming patterns, and every chord
 Open Lyric offers, on ten instruments: acoustic, classical and electric
