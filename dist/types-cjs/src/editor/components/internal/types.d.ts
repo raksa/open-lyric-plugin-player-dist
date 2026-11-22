@@ -65,6 +65,10 @@ export interface OpenLyricDisplayChangePayload {
     isSimplified: boolean;
     isBarsHidden: boolean;
     isKeyNotesHidden: boolean;
+    /** The `// …` comment lines inside the song's fences. */
+    isShowingCommentText?: boolean;
+    /** The song notes the Structure leaves out, listed under the song. */
+    isShowingNotes?: boolean;
     /** The transposition override; empty means the Config's original key. */
     keyNote: string;
 }
@@ -195,11 +199,26 @@ export interface OpenLyricLanguageContribution {
      */
     fontFamily?: string;
     /**
+     * The names {@link fontFaces} go by outside the page, for a face the plugin
+     * ships under a name of the page's own: `{ 'editor-Battambang':
+     * 'Battambang' }`. A presentation export writes the deck with these names,
+     * so another computer finds the font. A face with no entry keeps its name.
+     */
+    fontNames?: Readonly<Record<string, string>>;
+    /**
      * BCP-47 tags this contribution serves, matched against the document's
      * `ol:Config` `Locales` field. Defaults to the plugin's own id, so a plugin
      * keyed `km-KH` needs no locale list of its own.
      */
     locales?: readonly string[];
+    /**
+     * Translations for the fixed labels the PREVIEW surfaces print around a
+     * song, keyed by the English label: the `ol:Config` field names (`Title`,
+     * `Key`, `Attachments`, …) and `Untitled Song`. Applied the way
+     * {@link fontFamily} is — only while the document declares one of
+     * {@link locales} — and a label with no entry stays in English.
+     */
+    labels?: Readonly<Record<string, string>>;
     [key: string]: unknown;
 }
 /**

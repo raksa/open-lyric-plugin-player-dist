@@ -279,14 +279,17 @@ plays a pattern at about the same loudness.
 
 ## Sound files
 
-The player loads its sound from separate asset files that ship in `dist/assets/`:
+The player loads its sound from separate asset files that ship in `dist/assets/`,
+each beside its license:
 
 - the WebAudioFont player script (GPL-3.0-or-later), which only decodes the
-  soundfonts — the package's own MIT code plays the notes;
+  soundfonts — the package's own MIT code plays the notes. License:
+  `dist/assets/WebAudioFontPlayer.LICENSE.md`;
 - eight General MIDI soundfonts of the FluidR3_GM bank, from webaudiofontdata
   (MIT): steel-string guitar, nylon guitar (the classical guitar and both
   ukuleles), clean electric guitar, grand piano, electric piano, percussive
-  organ, electric bass (pick) and acoustic bass (the upright).
+  organ, electric bass (pick) and acoustic bass (the upright). License:
+  `dist/assets/webaudiofontdata.LICENSE`.
 
 A page loads only the soundfont of the instrument it plays. The room reverb is
 synthesised in code and loads no file.

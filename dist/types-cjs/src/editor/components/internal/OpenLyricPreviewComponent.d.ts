@@ -1,4 +1,6 @@
 import { OpenLyricComponent } from './OpenLyricComponent.js';
+import type { OpenLyricPrintHandler } from './print-page.js';
+import { type OpenLyricExportAction, type OpenLyricExportKind } from './export-actions.js';
 import { type OpenLyricEditorLike, type OpenLyricFontFaceList, type OpenLyricFontFaceSection, type OpenLyricPreviewOptions, type OpenLyricRenderHook, type OpenLyricTheme } from './types.js';
 /**
  * Shared base for the two read-only previews (`OpenLyric`, the lyric preview,
@@ -72,6 +74,8 @@ export declare abstract class OpenLyricPreviewComponent extends OpenLyricCompone
     private fontFamilyValue;
     private fontSizeValue;
     private fontFacesValue;
+    private labelLocaleValue;
+    private labelLocalizer;
     private readonly boundDoubleClick;
     constructor(options?: OpenLyricPreviewOptions);
     /** See {@link OpenLyricPreviewOptions.adoptContainer}. */
@@ -105,6 +109,56 @@ export declare abstract class OpenLyricPreviewComponent extends OpenLyricCompone
      * assigned — a flat list of names, titled sections, or a mix; use
      * {@link getFontFaceSections} for the normalized sectioned view.
      */
+    private readonly exportActions;
+    /**
+     * Add a button to this preview's export dialogs, after Download — Download
+     * as Presentation and Download as Image on `OpenLyric`, Download as Image on
+     * `OpenLyricMarkdownManager` (pick them with `kinds`). Choosing it builds
+     * the very file Download would and hands it to `action.run` instead:
+     *
+     * ```ts
+     * preview.addExportAction({
+     *   id: 'save-to-documents',
+     *   label: 'Save to Documents',
+     *   kinds: ['powerpoint'],
+     *   async run({ blob, fileName }) {
+     *     await saveToDocuments(fileName, blob);
+     *     return `Saved ${fileName} to Documents`; // the finished status
+     *   },
+     * });
+     * ```
+     *
+     * Adding another with the same `id` replaces it. Returns a function that
+     * removes it. Works on a standalone embed and on the app page alike; a
+     * dialog already open keeps the buttons it opened with.
+     */
+    addExportAction(action: OpenLyricExportAction): () => void;
+    /**
+     * Print through the host. Left `null` (the default), the ⋮ menu's **Print**
+     * writes the song into a window of its own and prints it there. A page that
+     * may open no window — a sandboxed frame such as a VS Code webview — assigns
+     * a function instead: Print then hands it the very page it would have
+     * printed, made self-contained (its style sheets written in, the fonts the
+     * song is set in embedded), and the host prints it its own way, for example
+     * by opening it in a browser. The page prints itself once it loads.
+     *
+     * ```ts
+     * preview.onPrint = async ({ html, fileName }) => {
+     *   await openInBrowser(fileName, html);
+     * };
+     * ```
+     *
+     * A promise it returns is waited on; a throw or a rejection reads **Print
+     * failed** on the progress line and goes to the console.
+     */
+    onPrint: OpenLyricPrintHandler | null;
+    /** Remove the export action added under `id`, if there is one. */
+    removeExportAction(id: string): void;
+    /**
+     * The export actions added to this preview, in the order they were first
+     * added — those for one dialog when `kind` names it.
+     */
+    getExportActions(kind?: OpenLyricExportKind): OpenLyricExportAction[];
     get fontFaces(): OpenLyricFontFaceList;
     set fontFaces(next: OpenLyricFontFaceList);
     /**
@@ -120,6 +174,12 @@ export declare abstract class OpenLyricPreviewComponent extends OpenLyricCompone
      * no longer hides what the plugins contribute.
      */
     getFontFaceSections(): OpenLyricFontFaceSection[];
+    /**
+     * The names the attached plugins' faces go by outside the page
+     * (`language.fontNames`), merged — the first plugin to name a face wins.
+     * The presentation exports write the deck with them.
+     */
+    get fontNames(): Record<string, string>;
     get fontFamily(): string;
     /**
      * The stack this preview actually renders with (`--ol-font-family`): the
@@ -139,6 +199,62 @@ export declare abstract class OpenLyricPreviewComponent extends OpenLyricCompone
      * own id (`km-KH`), so the usual case needs no `locales` list.
      */
     private resolvePluginFontFamily;
+    /**
+     * The `language` contributions of the attached plugins that claim a locale
+     * `value` declares, in attach order — what everything resolved per document
+     * (the font stack, the label translations) reads.
+     */
+    private getDocumentLanguageContributions;
+    /** The `language` contributions of the attached plugins claiming any of `wantedLocales`. */
+    private getLanguageContributionsFor;
+    /**
+     * The label translations this preview renders with: the `language.labels`
+     * of every composed plugin whose locale THIS document declares, keyed by the
+     * English label. Document-driven like {@link resolvedFontFamily} — an
+     * attached Khmer plugin translates a `- Locales: km-KH` song and leaves a
+     * Latin song on the same surface in English. Empty when nothing applies.
+     */
+    get resolvedLabels(): Record<string, string>;
+    /**
+     * The language {@link resolvedLabels} are in, as a BCP-47 tag: the locale
+     * (of the document, or the pinned {@link labelLocale}) of the first
+     * attached plugin that translates the labels, else `en`.
+     */
+    get resolvedLabelLocale(): string;
+    /**
+     * Which language the fixed labels are printed in:
+     *
+     * - `'auto'` (the default) — the document decides: the labels of a composed
+     *   language plugin whose locale the song's `Locales` declare, else English.
+     * - a locale tag (`'km-KH'`) — that language for every song, whatever its
+     *   `Locales` say, taken from the attached plugin that claims the tag.
+     * - `'en'`, or any tag no attached plugin claims — English.
+     *
+     * Only the labels follow it; the font stays document-driven. Assigning it
+     * re-renders a mounted preview.
+     */
+    get labelLocale(): string;
+    set labelLocale(next: string);
+    /**
+     * The `language` contributions the labels are read from: the document's own
+     * under `labelLocale: 'auto'`, else those of the plugins claiming the locale
+     * a reader or host pinned.
+     */
+    private getLabelLanguageContributions;
+    /**
+     * {@link resolvedLabels} for a document other than the mounted one — for a
+     * host that renders part of a document itself (the app panels' incremental
+     * paths) and must match what a full render would print. The first attached
+     * plugin to translate a label wins.
+     */
+    resolveLabels(value: string): Record<string, string>;
+    /**
+     * {@link resolvedLabels} as the renderers' `labels` option — spread into
+     * every subclass's `getRenderOptions()`. Nothing at all when no label is
+     * translated, so a host's `extraRenderOptions` is never shadowed by an empty
+     * map.
+     */
+    protected getLabelRenderOptions(): Record<string, unknown>;
     set fontFamily(next: string);
     get fontSize(): string;
     set fontSize(next: string);

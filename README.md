@@ -61,11 +61,14 @@ method, event and error.
 ## Licenses
 
 This package's code is MIT, its voice engine included. The sound it plays
-ships as separate, unmodified asset files in `dist/assets/`:
+ships as separate, unmodified asset files in `dist/assets/`, each beside its
+license:
 
 - the WebAudioFont player script (GPL-3.0-or-later, by Sergey Surikov), which
-  only decodes the soundfonts;
-- the webaudiofontdata soundfonts of the FluidR3_GM bank (MIT).
+  only decodes the soundfonts — license in
+  `dist/assets/WebAudioFontPlayer.LICENSE.md`;
+- the webaudiofontdata soundfonts of the FluidR3_GM bank (MIT) — license in
+  `dist/assets/webaudiofontdata.LICENSE`.
 
 The player script is loaded at runtime by its own `<script>` tag. It is never
 bundled into the MIT code.
